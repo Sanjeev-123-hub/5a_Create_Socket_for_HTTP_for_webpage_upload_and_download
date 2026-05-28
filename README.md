@@ -15,62 +15,69 @@ To write a PYTHON program for socket for HTTP for web page upload and download
 <BR>
 6.Stop the program
 <BR>
-## Program 
+## Program
+## Server:
 ```
 import socket
-import webbrowser
-import os
+s = socket.socket()
+s.bind(("localhost", 3024))
+s.listen(1)
+print("Server running...")
 
-def send_request(host, port, request):
+while True:
+    c, addr = s.accept()
+    request = c.recv(4096).decode()
+    print(f"Request received ")
 
-    with socket.create_connection((host, port)) as s:
+    if "GET" in request:
+        try:
+            with open("index.html", "r") as f:
+                data = f.read()
+            response = "HTTP/1.1 200 OK\n\n" + data
+        except FileNotFoundError:
+            response = "HTTP/1.1 404 Not Found\n\nFile not found"
+    elif "POST" in request:
+        body = request.split("\n\n", 1)[-1]
+        with open("upload.txt", "w") as f:
+            f.write(body)
+        response = "HTTP/1.1 200 OK\n\nFile Uploaded"
+    else:
+        response = "HTTP/1.1 400 Bad Request\n\nUnknown method"
 
-        s.sendall(request.encode())
+    c.send(response.encode())
+    c.close()
+```
+## Client:
+```
+import socket
+s = socket.socket()
+s.connect(("localhost", 3024))
+ch = input("1.Download  2.Upload : ")
+if ch == "1":
+    req = "GET / HTTP/1.1\nHost: localhost\n\n"
+    s.send(req.encode())
+    data = s.recv(4096)
+    print(data.decode())
+else:
+    msg = input("Enter data to upload: ")
+    req = "POST / HTTP/1.1\nHost: localhost\n\n" + msg
+    s.send(req.encode())
+    data = s.recv(1024)
+    print(data.decode())
 
-        response = b""
-
-        while True:
-
-            data = s.recv(4096)
-
-            if not data:
-                break
-
-            response += data
-
-    return response.decode(errors="ignore")
-
-def download_and_open(host, port):
-
-    request = f"GET / HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\n\r\n"
-
-    response = send_request(host, port, request)
-
-    html = response.split("\r\n\r\n", 1)[1]
-
-    filename = "page.html"
-
-    with open(filename, "w", encoding="utf-8") as f:
-        f.write(html)
-
-    print("HTML page saved.")
-
-    path = os.path.abspath(filename)
-
-    webbrowser.open("file://" + path)
-
-    print("Opened in browser.")
-
-if __name__ == "__main__":
-
-    host = "example.com"
-    port = 80
-
-    download_and_open(host, port)
+s.close()
 ```
 ## OUTPUT
 
-<img width="366" height="150" alt="image" src="https://github.com/user-attachments/assets/dde7e6c0-ef80-4e79-a8b9-80762c36013a" />
+## Client:
+
+<img width="929" height="262" alt="image" src="https://github.com/user-attachments/assets/7976a9d0-7c9e-438c-8624-cbb57c576e46" />
+
+## Server:
+
+<img width="360" height="164" alt="image" src="https://github.com/user-attachments/assets/cd30dc33-9d59-466a-ab8b-98d2d62f56b7" />
+
+
 
 ## Result
 Thus the socket for HTTP for web page upload and download created and Executed
